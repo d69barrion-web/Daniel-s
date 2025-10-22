@@ -61,5 +61,25 @@
     document.getElementById("buyButton").onclick = buyEBook;
   </script>
 
+<script>
+  async function connectWallet() {
+    if (typeof window.ethereum !== 'undefined') {
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        const walletAddress = accounts[0];
+        document.getElementById('walletStatus').innerText = 'Connected: ' + walletAddress;
+      } catch (error) {
+        console.error(error);
+        alert('Wallet connection rejected!');
+      }
+    } else {
+      alert('MetaMask not detected! Please open in MetaMask browser or install MetaMask.');
+    }
+  }
+</script>
+
+<button onclick="connectWallet()">Connect Wallet</button>
+<p id="walletStatus">Not connected</p>
+
 </body>
 </html>
