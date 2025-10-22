@@ -1,77 +1,70 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EbookReferral dApp</title>
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
+    <meta charset="UTF-8">
+    <title>EbookReferral dApp</title>
 </head>
-<body style="font-family: sans-serif; text-align:center; margin-top:50px;">
+<body>
+    <button id="connectBtn">Connect Wallet</button>
+    <span id="walletStatus">Not connected</span>
 
-  <h2>📚 EbookReferral dApp</h2>
-  <button id="connectButton">Connect Wallet</button>
-  <p id="walletAddress">Not connected</p>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
+    <script>
+        // --- Connect Wallet Function ---
+        async function connectWallet() {
+            if (!window.ethereum) {
+                alert("MetaMask not detected. Please install MetaMask!");
+                console.log("MetaMask not detected");
+                return null;
+            }
 
-  <hr style="margin:20px 0;">
-
-  <input type="text" id="referralCode" placeholder="Enter referral code (optional)" />
-  <button id="buyButton">Buy eBook</button>
-
-  <p id="status"></p>
-
-  <script>
-    const contractAddress = "0xd4d6d60400fd0c25d09859eafdf2fd6f44af6d9c";
-    const abi = [
-      {"inputs":[],"stateMutability":"nonpayable","type":"constructor"},
-      {"inputs":[{"internalType":"string","name":"code","type":"string"}],"name":"buyEbook","outputs":[],"stateMutability":"payable","type":"function"},
-      {"inputs":[],"name":"discountedPrice","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-      {"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
-      {"inputs":[{"internalType":"string","name":"","type":"string"}],"name":"referrers","outputs":[{"internalType":"address","name":"wallet","type":"address"},{"internalType":"bool","name":"isRegistered","type":"bool"}],"stateMutability":"view","type":"function"},
-      {"inputs":[{"internalType":"string","name":"code","type":"string"}],"name":"registerCode","outputs":[],"stateMutability":"nonpayable","type":"function"},
-      {"inputs":[],"name":"regularPrice","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
-    ];
-
-    let provider, signer, contract;
-
-    async function connectWallet() {
-      if (window.ethereum) {
-        try {
-          await ethereum.request({ method: "eth_requestAccounts" });
-          provider = new ethers.providers.Web3Provider(window.ethereum);
-          signer = provider.getSigner();
-          const address = await signer.getAddress();
-          document.getElementById("walletAddress").innerText = "Connected: " + address;
-
-          contract = new ethers.Contract(contractAddress, abi, signer);
-          document.getElementById("status").innerText = "Contract connected successfully!";
-        } catch (error) {
-          console.error(error);
-          alert("Wallet connection rejected!");
+            try {
+                // Check kung may existing connection
+                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                if (accounts.length > 0) {
+                    console.log("Already connected:", accounts[0]);
+                    document.getElementById("walletStatus").innerText = `Connected: ${accounts[0]}`;
+                    alert(`Already connected: ${accounts[0]}`); // monitoring popup
+                    return accounts[0];
+                } else {
+                    // Trigger connect popup
+                    const newAccounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    console.log("Connected:", newAccounts[0]);
+                    document.getElementById("walletStatus").innerText = `Connected: ${newAccounts[0]}`;
+                    alert(`Connected: ${newAccounts[0]}`); // monitoring popup
+                    return newAccounts[0];
+                }
+            } catch (err) {
+                console.error("Wallet connection rejected or error:", err);
+                alert("Wallet connection rejected or error"); // monitoring popup
+                return null;
+            }
         }
-      } else {
-        alert("MetaMask not detected! Open this site in MetaMask browser or install MetaMask.");
-      }
-    }
 
-    async function buyEBook() {
-      if (!contract) return alert("Connect wallet first!");
-      const referral = document.getElementById("referralCode").value || "NONE";
-      const price = ethers.utils.parseEther("0.0003"); // Adjust based on your smart contract
+        // --- Event Listener for account changes ---
+        if (window.ethereum) {
+            window.ethereum.on('accountsChanged', function (accounts) {
+                if (accounts.length === 0) {
+                    console.log("Disconnected");
+                    document.getElementById("walletStatus").innerText = "Disconnected";
+                    alert("Wallet disconnected"); // monitoring popup
+                } else {
+                    console.log("Switched to", accounts[0]);
+                    document.getElementById("walletStatus").innerText = `Connected: ${accounts[0]}`;
+                    alert(`Switched to: ${accounts[0]}`); // monitoring popup
+                }
+            });
+        }
 
-      try {
-        const tx = await contract.buyEbook(referral, { value: price });
-        document.getElementById("status").innerText = "Transaction sent! Waiting for confirmation...";
-        await tx.wait();
-        document.getElementById("status").innerText = "✅ Purchase successful!";
-      } catch (err) {
-        console.error(err);
-        document.getElementById("status").innerText = "❌ Transaction failed or cancelled.";
-      }
-    }
+        // --- Button click handler ---
+        document.getElementById("connectBtn").addEventListener("click", async () => {
+            await connectWallet();
+        });
 
-    document.getElementById("connectButton").onclick = connectWallet;
-    document.getElementById("buyButton").onclick = buyEBook;
-  </script>
-
+        // Optional: automatic check sa page load
+        window.addEventListener('load', async () => {
+            await connectWallet();
+        });
+    </script>
 </body>
 </html>
