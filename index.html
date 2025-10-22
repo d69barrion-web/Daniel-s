@@ -10,7 +10,7 @@
 
   <h2>📚 EbookReferral dApp</h2>
   <button id="connectButton">Connect Wallet</button>
-  <p id="walletAddress"></p>
+  <p id="walletAddress">Not connected</p>
 
   <hr style="margin:20px 0;">
 
@@ -21,30 +21,42 @@
 
   <script>
     const contractAddress = "0xd4d6d60400fd0c25d09859eafdf2fd6f44af6d9c";
-    const abi = [/
-[{"inputs":[],"stateMutability":"nonpayable","type":"constructor"},{"inputs":[{"internalType":"string","name":"code","type":"string"}],"name":"buyEbook","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"discountedPrice","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"string","name":"","type":"string"}],"name":"referrers","outputs":[{"internalType":"address","name":"wallet","type":"address"},{"internalType":"bool","name":"isRegistered","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"string","name":"code","type":"string"}],"name":"registerCode","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"regularPrice","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}]/];
+    const abi = [
+      {"inputs":[],"stateMutability":"nonpayable","type":"constructor"},
+      {"inputs":[{"internalType":"string","name":"code","type":"string"}],"name":"buyEbook","outputs":[],"stateMutability":"payable","type":"function"},
+      {"inputs":[],"name":"discountedPrice","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"string","name":"","type":"string"}],"name":"referrers","outputs":[{"internalType":"address","name":"wallet","type":"address"},{"internalType":"bool","name":"isRegistered","type":"bool"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"string","name":"code","type":"string"}],"name":"registerCode","outputs":[],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[],"name":"regularPrice","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
+    ];
 
     let provider, signer, contract;
 
     async function connectWallet() {
       if (window.ethereum) {
-        await ethereum.request({ method: "eth_requestAccounts" });
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        signer = provider.getSigner();
-        const address = await signer.getAddress();
-        document.getElementById("walletAddress").innerText = "Connected: " + address;
+        try {
+          await ethereum.request({ method: "eth_requestAccounts" });
+          provider = new ethers.providers.Web3Provider(window.ethereum);
+          signer = provider.getSigner();
+          const address = await signer.getAddress();
+          document.getElementById("walletAddress").innerText = "Connected: " + address;
 
-        contract = new ethers.Contract(contractAddress, abi, signer);
-        document.getElementById("status").innerText = "Contract connected!";
+          contract = new ethers.Contract(contractAddress, abi, signer);
+          document.getElementById("status").innerText = "Contract connected successfully!";
+        } catch (error) {
+          console.error(error);
+          alert("Wallet connection rejected!");
+        }
       } else {
-        alert("MetaMask not detected!");
+        alert("MetaMask not detected! Open this site in MetaMask browser or install MetaMask.");
       }
     }
 
     async function buyEBook() {
       if (!contract) return alert("Connect wallet first!");
       const referral = document.getElementById("referralCode").value || "NONE";
-      const price = ethers.utils.parseEther("0.0003"); // Change based on your price
+      const price = ethers.utils.parseEther("0.0003"); // Adjust based on your smart contract
 
       try {
         const tx = await contract.buyEbook(referral, { value: price });
@@ -53,33 +65,13 @@
         document.getElementById("status").innerText = "✅ Purchase successful!";
       } catch (err) {
         console.error(err);
-        document.getElementById("status").innerText = "❌ Transaction failed.";
+        document.getElementById("status").innerText = "❌ Transaction failed or cancelled.";
       }
     }
 
     document.getElementById("connectButton").onclick = connectWallet;
     document.getElementById("buyButton").onclick = buyEBook;
   </script>
-
-<script>
-  async function connectWallet() {
-    if (typeof window.ethereum !== 'undefined') {
-      try {
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        const walletAddress = accounts[0];
-        document.getElementById('walletStatus').innerText = 'Connected: ' + walletAddress;
-      } catch (error) {
-        console.error(error);
-        alert('Wallet connection rejected!');
-      }
-    } else {
-      alert('MetaMask not detected! Please open in MetaMask browser or install MetaMask.');
-    }
-  }
-</script>
-
-<button onclick="connectWallet()">Connect Wallet</button>
-<p id="walletStatus">Not connected</p>
 
 </body>
 </html>
