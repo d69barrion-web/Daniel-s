@@ -2,14 +2,28 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>EbookReferral dApp</title>
+    <title>EbookReferral Buyer dApp</title>
 </head>
 <body>
+    <h2>eBook Buyer dApp</h2>
+
+    <!-- Connect Wallet -->
     <button id="connectBtn">Connect Wallet</button>
     <span id="walletStatus">Not connected</span>
+    <br><br>
+
+    <!-- Discount / Referral code input -->
+    <input type="text" id="referralCode" placeholder="Enter discount/referral code (optional)">
+    <br><br>
+
+    <!-- Buy eBook -->
+    <button id="buyBtn">Buy eBook</button>
 
     <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
     <script>
+        const contractAddress = "YOUR_CONTRACT_ADDRESS_HERE";
+        const contractABI = [ /* Your contract ABI */ ];
+
         // --- Connect Wallet Function ---
         async function connectWallet() {
             if (!window.ethereum) {
@@ -19,24 +33,22 @@
             }
 
             try {
-                // Check kung may existing connection
                 const accounts = await window.ethereum.request({ method: 'eth_accounts' });
                 if (accounts.length > 0) {
                     console.log("Already connected:", accounts[0]);
                     document.getElementById("walletStatus").innerText = `Connected: ${accounts[0]}`;
-                    alert(`Already connected: ${accounts[0]}`); // monitoring popup
+                    alert(`Already connected: ${accounts[0]}`);
                     return accounts[0];
                 } else {
-                    // Trigger connect popup
                     const newAccounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                     console.log("Connected:", newAccounts[0]);
                     document.getElementById("walletStatus").innerText = `Connected: ${newAccounts[0]}`;
-                    alert(`Connected: ${newAccounts[0]}`); // monitoring popup
+                    alert(`Connected: ${newAccounts[0]}`);
                     return newAccounts[0];
                 }
             } catch (err) {
                 console.error("Wallet connection rejected or error:", err);
-                alert("Wallet connection rejected or error"); // monitoring popup
+                alert("Wallet connection rejected or error");
                 return null;
             }
         }
@@ -47,21 +59,59 @@
                 if (accounts.length === 0) {
                     console.log("Disconnected");
                     document.getElementById("walletStatus").innerText = "Disconnected";
-                    alert("Wallet disconnected"); // monitoring popup
+                    alert("Wallet disconnected");
                 } else {
                     console.log("Switched to", accounts[0]);
                     document.getElementById("walletStatus").innerText = `Connected: ${accounts[0]}`;
-                    alert(`Switched to: ${accounts[0]}`); // monitoring popup
+                    alert(`Switched to: ${accounts[0]}`);
                 }
             });
         }
 
-        // --- Button click handler ---
-        document.getElementById("connectBtn").addEventListener("click", async () => {
-            await connectWallet();
-        });
+        // --- Buy eBook Function ---
+        async function buyEbook() {
+            // Check wallet connection
+            const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+            if (accounts.length === 0) {
+                alert("Wallet not connected. Please connect first!");
+                return;
+            }
 
-        // Optional: automatic check sa page load
+            const account = accounts[0];
+            const code = document.getElementById("referralCode").value.trim(); // optional
+            console.log("Wallet:", account, "Referral code:", code);
+
+            try {
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                const signer = provider.getSigner();
+                const contract = new ethers.Contract(contractAddress, contractABI, signer);
+
+                // Example: calling contract function
+                let tx;
+                if (code) {
+                    tx = await contract.buyEbookWithCode(code, { value: ethers.utils.parseEther("0.75") });
+                } else {
+                    tx = await contract.buyEbook({ value: ethers.utils.parseEther("0.75") });
+                }
+
+                console.log("Transaction sent:", tx.hash);
+                alert(`Transaction sent: ${tx.hash}`);
+
+                await tx.wait();
+                console.log("Transaction confirmed");
+                alert("eBook purchased successfully!");
+
+            } catch (err) {
+                console.error("Error buying eBook:", err);
+                alert("Error buying eBook: " + err.message);
+            }
+        }
+
+        // --- Button Event Listeners ---
+        document.getElementById("connectBtn").addEventListener("click", connectWallet);
+        document.getElementById("buyBtn").addEventListener("click", buyEbook);
+
+        // Optional: auto-check connection on page load
         window.addEventListener('load', async () => {
             await connectWallet();
         });
